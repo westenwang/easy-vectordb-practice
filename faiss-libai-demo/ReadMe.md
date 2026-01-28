@@ -18,6 +18,7 @@ faiss-libai-demo/
 
 1. **安装依赖**
    ```bash
+   cd faiss-libai-demo
    conda create -n faiss-env python=3.10
    conda activate faiss-env
    pip install uvicorn[standard]>=0.24.0
