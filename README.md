@@ -128,7 +128,7 @@ conda activate faiss-env
 
 如果您有任何问题或建议，欢迎在 GitHub 仓库中提交 issue。引用请注明来源。
 
-[GitHub 仓库](https://github.com/your-username/easy-vectordb-practice)
+[GitHub 仓库](https://github.com/westenwang/easy-vectordb-practice/)
 
 祝您使用愉快！
 
