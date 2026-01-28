@@ -104,3 +104,4 @@ Thumbs.db
 anaconda_projects/
 faiss-libai-demo/text_search_db/*
 */text_corpus.txt
+faiss-pic-demo/image_search_db/*
