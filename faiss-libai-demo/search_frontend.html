@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文本语义检索测试界面</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f7fa;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+        .container {
+            background-color: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+        .results-container {
+            margin-top: 30px;
+        }
+        .result-item {
+            background-color: #f8f9fa;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 0 5px 5px 0;
+        }
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .rank {
+            background-color: #3498db;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+        }
+        .similarity {
+            font-weight: bold;
+            color: #27ae60;
+        }
+        .text {
+            margin: 10px 0;
+            line-height: 1.6;
+        }
+        .metadata {
+            background-color: #ecf0f1;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            overflow-x: auto;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #7f8c8d;
+        }
+        .error {
+            background-color: #fadbd8;
+            border-left-color: #e74c3c;
+            color: #c0392b;
+        }
+        .health-info {
+            background-color: #e8f6f3;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2ecc71;
+        }
+        .health-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .health-item {
+            background-color: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>文本语义检索测试界面</h1>
+        
+        <div class="health-info">
+            <h3>服务状态信息</h3>
+            <div class="health-grid" id="health-data">
+                <div class="loading">正在获取服务状态...</div>
+            </div>
+        </div>
+        
+        <form id="searchForm">
+            <div class="input-group">
+                <label for="query">查询文本:</label>
+                <input type="text" id="query" name="query" placeholder="输入要搜索的文本..." required>
+            </div>
+            
+            <div class="input-group">
+                <label for="top_k">返回结果数量 (top_k):</label>
+                <input type="number" id="top_k" name="top_k" min="1" max="10" value="3" required>
+            </div>
+            
+            <button type="submit" id="searchBtn">执行检索</button>
+        </form>
+        
+        <div class="results-container" id="resultsContainer"></div>
+    </div>
+
+    <script>
+        // 页面加载完成后获取健康状态
+        document.addEventListener('DOMContentLoaded', function() {
+            fetchHealthStatus();
+            
+            // 设置默认查询文本
+            document.getElementById('query').value = '两岸猿声啼不住？';
+        });
+        
+        // 表单提交事件
+        document.getElementById('searchForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const query = document.getElementById('query').value.trim();
+            const topK = parseInt(document.getElementById('top_k').value);
+            
+            if (!query) {
+                alert('请输入查询文本');
+                return;
+            }
+            
+            // 显示加载状态并禁用按钮
+            const searchBtn = document.getElementById('searchBtn');
+            searchBtn.disabled = true;
+            searchBtn.textContent = '检索中...';
+            document.getElementById('resultsContainer').innerHTML = '<div class="loading">正在检索，请稍候...</div>';
+            
+            try {
+                const response = await fetch('http://localhost:8000/text-search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        query: query,
+                        top_k: topK
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`请求失败，状态码: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                displayResults(data);
+            } catch (error) {
+                console.error('检索错误:', error);
+                document.getElementById('resultsContainer').innerHTML = `
+                    <div class="result-item error">
+                        <div class="result-header">
+                            <div class="rank">!</div>
+                            <div>错误信息</div>
+                        </div>
+                        <div class="text">请求失败: ${error.message}</div>
+                        <div class="text">请确认FastAPI服务已启动 (uvicorn app:app --host 0.0.0.0 --port 8000)</div>
+                    </div>
+                `;
+            } finally {
+                // 恢复按钮状态
+                searchBtn.disabled = false;
+                searchBtn.textContent = '执行检索';
+            }
+        });
+        
+        // 显示检索结果
+        function displayResults(data) {
+            const container = document.getElementById('resultsContainer');
+            
+            if (!data.results || data.results.length === 0) {
+                container.innerHTML = '<div class="result-item">没有找到相关结果</div>';
+                return;
+            }
+            
+            let resultsHtml = `<h3>检索结果 (查询: "${data.query}")</h3>`;
+            
+            data.results.forEach(item => {
+                resultsHtml += `
+                    <div class="result-item">
+                        <div class="result-header">
+                            <div class="rank">${item.rank}</div>
+                            <div class="similarity">相似度: ${item.similarity.toFixed(4)}</div>
+                        </div>
+                        <div class="text"><strong>文本:</strong> ${item.text}</div>
+                        <div class="metadata">
+                            <strong>元数据:</strong> 
+                            <pre>${JSON.stringify(item.metadata, null, 2)}</pre>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = resultsHtml;
+        }
+        
+        // 获取健康状态
+        async function fetchHealthStatus() {
+            try {
+                const response = await fetch('http://localhost:8000/health');
+                
+                if (!response.ok) {
+                    throw new Error(`健康检查失败，状态码: ${response.status}`);
+                }
+                
+                const healthData = await response.json();
+                displayHealthInfo(healthData);
+            } catch (error) {
+                console.error('健康检查错误:', error);
+                document.getElementById('health-data').innerHTML = `
+                    <div class="health-item">无法获取服务状态</div>
+                    <div class="health-item">错误: ${error.message}</div>
+                `;
+            }
+        }
+        
+        // 显示健康信息
+        function displayHealthInfo(data) {
+            const healthContainer = document.getElementById('health-data');
+            
+            healthContainer.innerHTML = `
+                <div class="health-item">
+                    <div><strong>服务状态</strong></div>
+                    <div>${data.status}</div>
+                </div>
+                <div class="health-item">
+                    <div><strong>索引向量数</strong></div>
+                    <div>${data.index_vector_count}</div>
+                </div>
+                <div class="health-item">
+                    <div><strong>文档总数</strong></div>
+                    <div>${data.total_sentences}</div>
+                </div>
+                <div class="health-item">
+                    <div><strong>模型路径</strong></div>
+                    <div>${data.model_path}</div>
+                </div>
+                <div class="health-item">
+                    <div><strong>语料库源</strong></div>
+                    <div>${data.corpus_source}</div>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
