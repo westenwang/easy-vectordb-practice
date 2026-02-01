@@ -58,6 +58,7 @@ venv.bak/
 
 # VS Code
 .vscode/
+.history/
 
 # mypy
 .mypy_cache/
